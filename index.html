@@ -1,21 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>HTML 5 Video Conference Experiment</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <script id="lzutf8" src="https://cdn.jsdelivr.net/npm/lzutf8/build/production/lzutf8.min.js"></script>
 </head>
 <body>
-    <video id="v1" height="480" width="640" autoplay muted></video>
-    <video id="v2" height="480" width="640" autoplay></video><br>
-    <button id="button" onclick="createOffer()">Offer:</button>
-    <textarea id="offer_url" placeholder="Offer URL"></textarea>
-    <br>
-    Answer:
-    <textarea id="answer_base64"></textarea>
+
+<div id="overlay" class="">
+    <div class="jumbotron d-flex align-items-center min-vh-100">
+        <div class="container text-center">
+            <div id="loading_div" class="">
+                <div class="spinner-border" role="status">
+                    <span class="sr-only"></span>
+                </div><br>
+                <span>Connecting...</span>
+            </div>
+
+            <div id="offer_div" class="d-none">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Conference URL</span>
+                    </div>
+                    <input id="offer_url" type="text" class="form-control" aria-describedby="basic-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyOffer()">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="answer_div" class="d-none">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Answer</span>
+                    </div>
+                    <input id="answer_base64" type="text" class="form-control" aria-describedby="basic-addon2">
+                    <div id="answer_div_copy" class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyAnswer()">Copy</button>
+                    </div>
+                    <div id="answer_div_enter" class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" onclick="submitAnswer()">Enter</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="main" class="d-none">
+    <!--<div class="embed-responsive embed-responsive-4by3 d-none">-->
+        <!--<video id="v1" autoplay muted></video>-->
+    <!--</div>-->
+    <!--<div class="embed-responsive embed-responsive-4by3">-->
+        <!--<video id="v2" autoplay></video><br>-->
+    <!--</div>-->
+
+    <video id="v1" class="d-none" autoplay muted></video>
+    <video id="v2" autoplay></video><br>
+
     <br><div id="div"></div>
     Chat: <input id="chat"></input><br>
+</div>
+
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script src="video.js"></script>
+    <script src="video.js?version=5"></script>
 </body>
 </html>

@@ -1,7 +1,8 @@
-var server = { urls: "stun:stun.l.google.com:19302" };
+var server = { urls: "stun1.l.google.com:19302" };
 
 var dc, pc = new RTCPeerConnection({ iceServers: [server] });
 pc.onaddstream = e => {
+    alert('onaddstream!');
     v2.srcObject = e.stream;
 };
 pc.ondatachannel = e => dcInit(dc = e.channel);
@@ -11,12 +12,16 @@ var haveGum = navigator.mediaDevices.getUserMedia({video:true, audio:true})
     .then(stream => pc.addStream(v1.srcObject = stream)).catch(log);
 
 function dcInit() {
-    dc.onopen = () => log("Chat!");
+    dc.onopen = () => {
+        log("Chat!");
+        $('#overlay').remove();
+        $('#main').removeClass("d-none");
+    };
     dc.onmessage = e => log(e.data);
 }
 
 function createOffer() {
-    button.disabled = true;
+    console.log("create offer");
     offer_url.placeholder = 'Generating URL...';
     offer_url.disabled = true;
     dcInit(dc = pc.createDataChannel("chat"));
@@ -24,6 +29,11 @@ function createOffer() {
         .catch(log);
     pc.onicecandidate = e => {
         if (e.candidate) return;
+        console.log("offer ready");
+        $('#loading_div').addClass('d-none');
+        $('#offer_div').removeClass('d-none');
+        $('#answer_div').removeClass('d-none');
+        $('#answer_div_copy').remove();
         offer_url.disabled = false;
         var compressed_offer = LZUTF8.compress(pc.localDescription.sdp, {"outputEncoding": "Base64"});
 
@@ -31,7 +41,21 @@ function createOffer() {
         offer_url.select();
         answer_base64.placeholder = "Paste answer here";
     };
-};
+}
+
+function copyOffer() {
+    /* Get the text field */
+    var copyText = document.getElementById("offer_url");
+
+    /* Select the text field */
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+    /* Copy the text inside the text field */
+    document.execCommand("copy");
+
+    console.log('copy Offer')
+}
 
 function generateAnswer(offer_base64) {
     if (pc.signalingState != "stable"){
@@ -41,7 +65,6 @@ function generateAnswer(offer_base64) {
         }, 100);
         return;
     }
-    button.disabled = true;
     var plain_offer = LZUTF8.decompress(offer_base64, {"inputEncoding": "Base64"});
     var desc = new RTCSessionDescription({ type:"offer", sdp: plain_offer });
 pc.setRemoteDescription(desc)
@@ -49,9 +72,35 @@ pc.setRemoteDescription(desc)
         .catch(log);
     pc.onicecandidate = e => {
         if (e.candidate) return;
+        $('#loading_div').addClass('d-none');
+        $('#answer_div').removeClass('d-none');
+        $('#answer_div_enter').remove();
         answer_base64.value = btoa(pc.localDescription.sdp);
         answer_base64.select();
     };
+}
+
+function copyAnswer() {
+    /* Get the text field */
+    var copyText = document.getElementById("offer_url");
+
+    /* Select the text field */
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+    /* Copy the text inside the text field */
+    document.execCommand("copy");
+
+    console.log('copy Answer')
+}
+
+function submitAnswer(){
+    if (pc.signalingState != "have-local-offer") return;
+    answer_base64.disabled = true;
+    var desc = new RTCSessionDescription({ type:"answer", sdp: atob(answer_base64.value) });
+    pc.setRemoteDescription(desc).catch(log);
+    $('#overlay').remove();
+    $('#main').removeClass("d-none");
 }
 
 answer_base64.onkeypress = e => {
@@ -59,6 +108,8 @@ answer_base64.onkeypress = e => {
     answer_base64.disabled = true;
     var desc = new RTCSessionDescription({ type:"answer", sdp: atob(answer_base64.value) });
     pc.setRemoteDescription(desc).catch(log);
+    $('#overlay').remove();
+    $('#main').removeClass("d-none");
 };
 
 chat.onkeypress = e => {
@@ -98,7 +149,6 @@ function onPageLoadCheck(){
     if (fragment) {
         var params = parse_query_string(fragment);
         if (params.offer_base64){
-            button.disabled = offer_url.disabled = true;
             generateAnswer(params.offer_base64);
         }
     } else {
