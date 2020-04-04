@@ -1,7 +1,9 @@
 var server = { urls: "stun:stun.l.google.com:19302" };
 
 var dc, pc = new RTCPeerConnection({ iceServers: [server] });
-pc.onaddstream = e => v2.srcObject = e.stream;
+pc.onaddstream = e => {
+    v2.srcObject = e.stream;
+};
 pc.ondatachannel = e => dcInit(dc = e.channel);
 pc.oniceconnectionstatechange = e => log(pc.iceConnectionState);
 
@@ -15,62 +17,42 @@ function dcInit() {
 
 function createOffer() {
     button.disabled = true;
-    offer.placeholder = 'Generating Token...';
-    offer_base64.placeholder = 'Generating Token...';
+    offer_url.placeholder = 'Generating URL...';
+    offer_url.disabled = true;
     dcInit(dc = pc.createDataChannel("chat"));
     haveGum.then(() => pc.createOffer()).then(d => pc.setLocalDescription(d))
         .catch(log);
     pc.onicecandidate = e => {
         if (e.candidate) return;
-        offer.value = pc.localDescription.sdp;
-        offer_base64.value = btoa(pc.localDescription.sdp);
-        offer.select();
-        answer.placeholder = "Paste answer here";
+        offer_url.disabled = false;
+        offer_url.value = location.protocol + '//' + location.host + location.pathname + '#offer_base64=' + btoa(pc.localDescription.sdp);
+        offer_url.select();
+        answer_base64.placeholder = "Paste answer here";
     };
 };
 
-offer.onkeypress = e => {
-    if (!enterPressed(e) || pc.signalingState != "stable") return;
-    button.disabled = offer.disabled = true;
-    var desc = new RTCSessionDescription({ type:"offer", sdp:offer.value });
-    pc.setRemoteDescription(desc)
+function generateAnswer(offer_base64) {
+    if (pc.signalingState != "stable"){
+        console.log(pc.signalingState);
+        setTimeout(function() {
+            generateAnswer();
+        }, 100);
+        return;
+    }
+    button.disabled = true;
+    var desc = new RTCSessionDescription({ type:"offer", sdp: atob(offer_base64) });
+pc.setRemoteDescription(desc)
         .then(() => pc.createAnswer()).then(d => pc.setLocalDescription(d))
         .catch(log);
     pc.onicecandidate = e => {
         if (e.candidate) return;
-        answer.focus();
-        answer.value = pc.localDescription.sdp;
-        answer.select();
-    };
-};
-
-offer_base64.onkeypress = e => {
-    if (!enterPressed(e) || pc.signalingState != "stable") return;
-    button.disabled = offer.disabled = true;
-    var desc = new RTCSessionDescription({ type:"offer", sdp: atob(offer_base64.value) });
-    pc.setRemoteDescription(desc)
-        .then(() => pc.createAnswer()).then(d => pc.setLocalDescription(d))
-        .catch(log);
-    pc.onicecandidate = e => {
-        if (e.candidate) return;
-        answer.focus();
-        answer.value = pc.localDescription.sdp;
         answer_base64.value = btoa(pc.localDescription.sdp);
         answer_base64.select();
     };
-};
-
-answer.onkeypress = e => {
-    if (!enterPressed(e) || pc.signalingState != "have-local-offer") return;
-    answer.disabled = true;
-    answer_base64.disabled = true;
-    var desc = new RTCSessionDescription({ type:"answer", sdp:answer.value });
-    pc.setRemoteDescription(desc).catch(log);
-};
+}
 
 answer_base64.onkeypress = e => {
     if (!enterPressed(e) || pc.signalingState != "have-local-offer") return;
-    answer.disabled = true;
     answer_base64.disabled = true;
     var desc = new RTCSessionDescription({ type:"answer", sdp: atob(answer_base64.value) });
     pc.setRemoteDescription(desc).catch(log);
@@ -85,3 +67,42 @@ chat.onkeypress = e => {
 
 var enterPressed = e => e.keyCode == 13;
 var log = msg => div.innerHTML += "<p>" + msg + "</p>";
+
+function parse_query_string(query) {
+    var vars = query.split("&");
+    var query_string = {};
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split("=");
+        var key = decodeURIComponent(pair[0]);
+        var value = decodeURIComponent(pair[1]);
+        // If first entry with this name
+        if (typeof query_string[key] === "undefined") {
+            query_string[key] = decodeURIComponent(value);
+            // If second entry with this name
+        } else if (typeof query_string[key] === "string") {
+            var arr = [query_string[key], decodeURIComponent(value)];
+            query_string[key] = arr;
+            // If third or later entry with this name
+        } else {
+            query_string[key].push(decodeURIComponent(value));
+        }
+    }
+    return query_string;
+}
+
+function onPageLoadCheck(){
+    var fragment = location.hash.substr(1);
+    if (fragment) {
+        var params = parse_query_string(fragment);
+        if (params.offer_base64){
+            button.disabled = offer_url.disabled = true;
+            generateAnswer(params.offer_base64);
+        }
+    } else {
+        createOffer();
+    }
+}
+
+setTimeout(function() {
+    onPageLoadCheck();
+}, 500);
