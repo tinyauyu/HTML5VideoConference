@@ -25,7 +25,9 @@ function createOffer() {
     pc.onicecandidate = e => {
         if (e.candidate) return;
         offer_url.disabled = false;
-        offer_url.value = location.protocol + '//' + location.host + location.pathname + '#offer_base64=' + btoa(pc.localDescription.sdp);
+        var compressed_offer = LZUTF8.compress(pc.localDescription.sdp, {"outputEncoding": "Base64"});
+
+        offer_url.value = location.protocol + '//' + location.host + location.pathname + '#offer_base64=' + compressed_offer;
         offer_url.select();
         answer_base64.placeholder = "Paste answer here";
     };
@@ -40,7 +42,8 @@ function generateAnswer(offer_base64) {
         return;
     }
     button.disabled = true;
-    var desc = new RTCSessionDescription({ type:"offer", sdp: atob(offer_base64) });
+    var plain_offer = LZUTF8.decompress(offer_base64, {"inputEncoding": "Base64"});
+    var desc = new RTCSessionDescription({ type:"offer", sdp: plain_offer });
 pc.setRemoteDescription(desc)
         .then(() => pc.createAnswer()).then(d => pc.setLocalDescription(d))
         .catch(log);
