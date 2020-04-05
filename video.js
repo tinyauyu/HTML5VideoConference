@@ -1,15 +1,26 @@
-var server = { urls: "stun1.l.google.com:19302" };
+var server = { urls: "stun:stun1.l.google.com:19302" };
+
+var log = msg => div.innerHTML += "<p>" + msg + "</p>";
 
 var dc, pc = new RTCPeerConnection({ iceServers: [server] });
-pc.onaddstream = e => {
+pc.ontrack = e => {
     alert('onaddstream!');
-    v2.srcObject = e.stream;
+    log('onaddstream!');
+    // v2.srcObject = e.stream;
+    v2.srcObject = e.streams[0];
 };
 pc.ondatachannel = e => dcInit(dc = e.channel);
 pc.oniceconnectionstatechange = e => log(pc.iceConnectionState);
 
 var haveGum = navigator.mediaDevices.getUserMedia({video:true, audio:true})
-    .then(stream => pc.addStream(v1.srcObject = stream)).catch(log);
+    .then(stream => {
+        for (const track of stream.getTracks()) {
+            pc.addTrack(track, v1.srcObject = stream);
+        }
+        // pc.addStream(v1.srcObject = stream);
+        alert('addStream');
+        log('addStream');
+    }).catch(log);
 
 function dcInit() {
     dc.onopen = () => {
@@ -67,7 +78,7 @@ function generateAnswer(offer_base64) {
     }
     var plain_offer = LZUTF8.decompress(offer_base64, {"inputEncoding": "Base64"});
     var desc = new RTCSessionDescription({ type:"offer", sdp: plain_offer });
-pc.setRemoteDescription(desc)
+    pc.setRemoteDescription(desc)
         .then(() => pc.createAnswer()).then(d => pc.setLocalDescription(d))
         .catch(log);
     pc.onicecandidate = e => {
@@ -82,7 +93,7 @@ pc.setRemoteDescription(desc)
 
 function copyAnswer() {
     /* Get the text field */
-    var copyText = document.getElementById("offer_url");
+    var copyText = document.getElementById("answer_base64");
 
     /* Select the text field */
     copyText.select();
@@ -120,7 +131,6 @@ chat.onkeypress = e => {
 };
 
 var enterPressed = e => e.keyCode == 13;
-var log = msg => div.innerHTML += "<p>" + msg + "</p>";
 
 function parse_query_string(query) {
     var vars = query.split("&");
